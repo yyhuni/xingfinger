@@ -1,24 +1,24 @@
 [
   {
-    "name": "测试框架",
+    "name": "Fingers 测试系统",
     "rule": [
       {
         "regexps": {
-          "body": ["TestFramework"]
+          "body": ["Fingers Test Page"]
         }
       }
     ],
     "tag": ["test"]
   },
   {
-    "name": "示例系统",
+    "name": "Fingers 指纹测试",
     "rule": [
       {
         "regexps": {
-          "header": ["X-Example-System"]
+          "body": ["TestFramework detected"]
         }
       }
     ],
-    "tag": ["example"]
+    "tag": ["test"]
   }
 ]

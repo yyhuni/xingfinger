@@ -1,22 +1,22 @@
 [
   {
-    "name": "示例系统",
+    "name": "Goby 测试系统",
     "logic": "a",
     "rule": [
       {
         "label": "a",
-        "feature": "example_system",
+        "feature": "Goby Test Page",
         "is_equal": true
       }
     ]
   },
   {
-    "name": "内部OA",
+    "name": "Goby 指纹测试",
     "logic": "a",
     "rule": [
       {
         "label": "a",
-        "feature": "内部办公系统",
+        "feature": "Goby 指纹测试页面",
         "is_equal": true
       }
     ]

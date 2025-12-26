@@ -1,24 +1,54 @@
 [
   {
-    "name": "测试应用",
-    "rule": [
-      {
-        "regexps": {
-          "body": ["TestApp"]
-        }
+    "id": "fingerprinthub_test_system",
+    "info": {
+      "name": "FingerPrintHub 测试系统",
+      "author": "test",
+      "tags": "detect,tech,fingerprinthub",
+      "severity": "info",
+      "metadata": {
+        "product": "FingerPrintHub 测试系统",
+        "vendor": "test"
       }
-    ],
-    "tag": ["test"]
+    },
+    "http": [
+      {
+        "method": "GET",
+        "path": ["{{BaseURL}}/fingerprinthub"],
+        "matchers": [
+          {
+            "type": "word",
+            "words": ["FingerPrintHub Test Page"],
+            "case-insensitive": true
+          }
+        ]
+      }
+    ]
   },
   {
-    "name": "演示系统",
-    "rule": [
-      {
-        "regexps": {
-          "header": ["X-Demo-System"]
-        }
+    "id": "fingerprinthub_test_app",
+    "info": {
+      "name": "FingerPrintHub 指纹测试",
+      "author": "test",
+      "tags": "detect,tech,fingerprinthub",
+      "severity": "info",
+      "metadata": {
+        "product": "FingerPrintHub 指纹测试",
+        "vendor": "test"
       }
-    ],
-    "tag": ["demo"]
+    },
+    "http": [
+      {
+        "method": "GET",
+        "path": ["{{BaseURL}}/fingerprinthub"],
+        "matchers": [
+          {
+            "type": "word",
+            "words": ["TestApp detected"],
+            "case-insensitive": true
+          }
+        ]
+      }
+    ]
   }
 ]

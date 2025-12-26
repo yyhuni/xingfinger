@@ -1,16 +1,16 @@
 {
   "fingerprint": [
     {
-      "cms": "示例系统",
-      "method": "keyword",
-      "location": "body",
-      "keyword": ["example_system"]
-    },
-    {
-      "cms": "内部 OA",
+      "cms": "EHole 测试系统",
       "method": "keyword",
       "location": "title",
-      "keyword": ["内部办公系统"]
+      "keyword": ["EHole Test Page"]
+    },
+    {
+      "cms": "EHole 指纹测试",
+      "method": "keyword",
+      "location": "body",
+      "keyword": ["EHole 指纹测试页面"]
     }
   ]
 }
