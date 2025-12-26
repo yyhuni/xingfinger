@@ -1,0 +1,10 @@
+# Binaries
+xingfinger
+*.exe
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
