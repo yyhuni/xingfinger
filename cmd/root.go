@@ -1,4 +1,5 @@
 // Package cmd 提供命令行接口功能
+// 本文件定义了 xingfinger 的命令行参数和执行入口
 package cmd
 
 import (
@@ -12,6 +13,7 @@ import (
 )
 
 // Banner 程序横幅
+// 在非静默模式下启动时显示
 const Banner = `
   __  ___                _____ _                       
   \ \/ (_)___  ____ _   / ____(_)___  ____ ____  _____ 
@@ -23,65 +25,100 @@ const Banner = `
 
 // 命令行参数变量
 var (
-	inputFile  string // 输入文件路径
+	inputFile  string // 输入文件路径，包含待扫描的 URL 列表
 	targetURL  string // 单个目标 URL
-	threadNum  int    // 并发线程数
-	outputFile string // 输出文件路径
-	proxyAddr  string // 代理服务器地址
-	timeout    int    // 请求超时时间（秒）
-	silent     bool   // 安静模式
+	threadNum  int    // 并发线程数，默认 100
+	outputFile string // 输出文件路径，支持 JSON 格式
+	proxyAddr  string // 代理服务器地址，格式如 http://127.0.0.1:8080
+	timeout    int    // HTTP 请求超时时间（秒），默认 10
+	silent     bool   // 静默模式，只输出命中指纹的结果
 )
 
 // rootCmd 根命令
+// xingfinger 的主命令，直接执行扫描功能
 var rootCmd = &cobra.Command{
 	Use:   "xingfinger",
 	Short: "Web fingerprint scanner",
-	Run:   runScan,
+	Long: `XingFinger - Web 指纹识别工具
+
+基于 chainreactors/fingers 多指纹库聚合引擎，支持：
+- fingers 指纹库
+- wappalyzer 技术检测
+- fingerprinthub 指纹中心
+- ehole 棱洞指纹
+- goby 指纹库
+
+使用示例：
+  xingfinger -u http://example.com
+  xingfinger -l urls.txt -o result.json
+  xingfinger -u http://example.com --silent`,
+	Run: runScan,
 }
 
 // Execute 执行根命令
+// 这是程序的入口点，由 main 函数调用
 func Execute() {
 	cobra.CheckErr(rootCmd.Execute())
 }
 
 // init 初始化命令行参数
+// 定义所有支持的命令行标志
 func init() {
+	// 禁用默认的 completion 命令
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
-	rootCmd.Flags().StringVarP(&inputFile, "list", "l", "", "Input file with URLs")
-	rootCmd.Flags().StringVarP(&targetURL, "url", "u", "", "Single target URL")
-	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file (json)")
-	rootCmd.Flags().IntVarP(&threadNum, "thread", "t", 100, "Thread count")
-	rootCmd.Flags().StringVarP(&proxyAddr, "proxy", "p", "", "Proxy address")
-	rootCmd.Flags().IntVar(&timeout, "timeout", 10, "Request timeout (seconds)")
-	rootCmd.Flags().BoolVar(&silent, "silent", false, "Silent mode, only output matched results")
+	// 定义命令行参数
+	rootCmd.Flags().StringVarP(&inputFile, "list", "l", "", "输入文件路径，包含待扫描的 URL 列表")
+	rootCmd.Flags().StringVarP(&targetURL, "url", "u", "", "单个目标 URL")
+	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "输出文件路径（JSON 格式）")
+	rootCmd.Flags().IntVarP(&threadNum, "thread", "t", 100, "并发线程数")
+	rootCmd.Flags().StringVarP(&proxyAddr, "proxy", "p", "", "代理地址（如 http://127.0.0.1:8080）")
+	rootCmd.Flags().IntVar(&timeout, "timeout", 10, "请求超时时间（秒）")
+	rootCmd.Flags().BoolVar(&silent, "silent", false, "静默模式，只输出命中指纹的结果")
 }
 
 // runScan 执行扫描任务
+// 根据命令行参数加载 URL 并启动扫描器
+//
+// 参数：
+//   - cmd: cobra 命令对象
+//   - args: 命令行参数
 func runScan(cmd *cobra.Command, args []string) {
-	// 显示横幅
+	// 非静默模式下显示横幅
 	if !silent {
 		fmt.Print(Banner)
 	}
 
 	var urls []string
 
+	// 根据输入方式加载 URL
 	switch {
 	case inputFile != "":
+		// 从文件加载 URL 列表并去重
 		urls = deduplicate(source.LoadFromFile(inputFile))
 	case targetURL != "":
+		// 使用单个目标 URL
 		urls = []string{targetURL}
 	default:
+		// 未提供输入，显示帮助信息
 		cmd.Help()
 		return
 	}
 
+	// 创建扫描器并执行扫描
 	scanner := finger.NewScanner(urls, threadNum, outputFile, proxyAddr, timeout, silent)
 	scanner.Run()
 	os.Exit(0)
 }
 
-// deduplicate 去重
+// deduplicate 对字符串切片去重
+// 保持原有顺序，移除重复的 URL
+//
+// 参数：
+//   - arr: 原始字符串切片
+//
+// 返回：
+//   - 去重后的字符串切片
 func deduplicate(arr []string) []string {
 	seen := make(map[string]bool)
 	result := make([]string, 0)
