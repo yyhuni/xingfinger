@@ -1,5 +1,4 @@
 // Package cmd 提供命令行接口功能
-// 使用 cobra 框架实现命令行参数解析
 package cmd
 
 import (
@@ -29,6 +28,7 @@ var (
 	threadNum  int    // 并发线程数
 	outputFile string // 输出文件路径
 	proxyAddr  string // 代理服务器地址
+	timeout    int    // 请求超时时间（秒）
 	silent     bool   // 安静模式
 )
 
@@ -53,6 +53,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file (json)")
 	rootCmd.Flags().IntVarP(&threadNum, "thread", "t", 100, "Thread count")
 	rootCmd.Flags().StringVarP(&proxyAddr, "proxy", "p", "", "Proxy address")
+	rootCmd.Flags().IntVar(&timeout, "timeout", 10, "Request timeout (seconds)")
 	rootCmd.Flags().BoolVar(&silent, "silent", false, "Silent mode, only output matched results")
 }
 
@@ -75,7 +76,7 @@ func runScan(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	scanner := finger.NewScanner(urls, threadNum, outputFile, proxyAddr, silent)
+	scanner := finger.NewScanner(urls, threadNum, outputFile, proxyAddr, timeout, silent)
 	scanner.Run()
 	os.Exit(0)
 }

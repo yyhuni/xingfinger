@@ -40,17 +40,7 @@ type Scanner struct {
 }
 
 // NewScanner 创建新的扫描器实例
-//
-// 参数：
-//   - urls: 待扫描的 URL 列表
-//   - thread: 并发线程数
-//   - output: 输出文件路径（可为空）
-//   - proxy: 代理服务器地址（可为空）
-//   - silent: 安静模式
-//
-// 返回：
-//   - 初始化完成的扫描器实例
-func NewScanner(urls []string, thread int, output, proxy string, silent bool) *Scanner {
+func NewScanner(urls []string, thread int, output, proxy string, timeout int, silent bool) *Scanner {
 	s := &Scanner{
 		queue:      queue.NewQueue(),
 		thread:     thread,
@@ -60,6 +50,9 @@ func NewScanner(urls []string, thread int, output, proxy string, silent bool) *S
 		allResults: []Result{},
 		hitResults: []Result{},
 	}
+
+	// 设置超时时间
+	Timeout = timeout
 
 	// 加载指纹规则库
 	err := LoadWebfingerprint(source.GetExePath() + "/finger.json")
