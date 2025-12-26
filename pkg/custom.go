@@ -3,6 +3,7 @@
 package pkg
 
 import (
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -113,7 +114,7 @@ func loadFingerFile(path string) ([]byte, error) {
 
 // gzipCompress 将数据压缩为 gzip 格式
 func gzipCompress(data []byte) ([]byte, error) {
-	var buf strings.Builder
+	var buf bytes.Buffer
 	w := gzip.NewWriter(&buf)
 	_, err := w.Write(data)
 	if err != nil {
@@ -123,7 +124,7 @@ func gzipCompress(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []byte(buf.String()), nil
+	return buf.Bytes(), nil
 }
 
 // gzipDecompress 解压 gzip 数据（用于调试）

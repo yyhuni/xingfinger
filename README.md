@@ -91,7 +91,7 @@ xingfinger -u https://example.com --ehole fingerprints/custom_ehole.json --goby 
 
 自定义指纹文件放在 `fingerprints/` 目录下，详见 [fingerprints/README.md](fingerprints/README.md)。
 
-EHole 格式示例：
+**EHole 格式示例**：
 ```json
 {
   "fingerprint": [
@@ -105,8 +105,25 @@ EHole 格式示例：
 }
 ```
 
-支持的 method: `keyword`、`regular`、`faviconhash`
-支持的 location: `body`、`header`、`title`
+**Goby 格式示例**：
+```json
+[
+  {
+    "name": "系统名称",
+    "logic": "a",
+    "rule": [
+      {
+        "label": "a",
+        "feature": "特征字符串",
+        "is_equal": true
+      }
+    ]
+  }
+]
+```
+
+支持的 EHole method: `keyword`、`regular`、`faviconhash`
+支持的 EHole location: `body`、`header`、`title`
 
 ## 参考项目
 

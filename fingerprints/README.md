@@ -49,6 +49,49 @@ xingfinger -u https://example.com --ehole fingerprints/custom_ehole.json --goby 
 }
 ```
 
+## Goby 格式示例
+
+```json
+[
+  {
+    "name": "系统名称",
+    "logic": "a",
+    "rule": [
+      {
+        "label": "a",
+        "feature": "特征字符串",
+        "is_equal": true
+      }
+    ]
+  },
+  {
+    "name": "另一个系统",
+    "logic": "a||b",
+    "rule": [
+      {
+        "label": "a",
+        "feature": "特征1",
+        "is_equal": true
+      },
+      {
+        "label": "b",
+        "feature": "特征2",
+        "is_equal": true
+      }
+    ]
+  }
+]
+```
+
+### Goby 格式说明
+
+- `name`: 系统/应用名称
+- `logic`: 逻辑表达式，使用标签组合（支持 `||`、`&&`、括号）
+- `rule`: 规则数组
+  - `label`: 规则标签（在 logic 中引用）
+  - `feature`: 要匹配的特征字符串
+  - `is_equal`: `true` 表示包含该特征，`false` 表示不包含该特征
+
 ## 支持的匹配方法
 
 | 方法 | 说明 | 示例 |
