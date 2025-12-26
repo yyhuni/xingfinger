@@ -83,11 +83,13 @@ xingfinger -u https://example.com --ehole my_ehole.json
 
 ```bash
 # 使用自定义 EHole 格式指纹
-xingfinger -u https://example.com --ehole my_finger.json
+xingfinger -u https://example.com --ehole fingerprints/custom_ehole.json
 
 # 同时使用多个自定义指纹
-xingfinger -u https://example.com --ehole ehole.json --goby goby.json
+xingfinger -u https://example.com --ehole fingerprints/custom_ehole.json --goby fingerprints/custom_goby.json
 ```
+
+自定义指纹文件放在 `fingerprints/` 目录下，详见 [fingerprints/README.md](fingerprints/README.md)。
 
 EHole 格式示例：
 ```json
