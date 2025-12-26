@@ -24,14 +24,20 @@ const Banner = `
 
 // 命令行参数变量
 var (
-	inputFile    string // 输入文件路径，包含待扫描的 URL 列表
-	targetURL    string // 单个目标 URL
-	threadNum    int    // 并发线程数，默认 100
-	outputFile   string // 输出文件路径，支持 JSON 格式
-	proxyAddr    string // 代理服务器地址，格式如 http://127.0.0.1:8080
-	timeout      int    // HTTP 请求超时时间（秒），默认 10
-	silent       bool   // 静默模式，只输出命中指纹的结果
-	updateFinger bool   // 更新指纹库
+	inputFile  string // 输入文件路径，包含待扫描的 URL 列表
+	targetURL  string // 单个目标 URL
+	threadNum  int    // 并发线程数，默认 100
+	outputFile string // 输出文件路径，支持 JSON 格式
+	proxyAddr  string // 代理服务器地址，格式如 http://127.0.0.1:8080
+	timeout    int    // HTTP 请求超时时间（秒），默认 10
+	silent     bool   // 静默模式，只输出命中指纹的结果
+
+	// 自定义指纹文件
+	eholeFile       string // EHole 格式指纹文件
+	gobyFile        string // Goby 格式指纹文件
+	wappalyzerFile  string // Wappalyzer 格式指纹文件
+	fingersFile     string // Fingers 原生格式指纹文件
+	fingerprintFile string // FingerPrintHub 格式指纹文件
 )
 
 // rootCmd 根命令
@@ -52,7 +58,7 @@ var rootCmd = &cobra.Command{
   xingfinger -u http://example.com
   xingfinger -l urls.txt -o result.json
   xingfinger -u http://example.com --silent
-  xingfinger --update`,
+  xingfinger -u http://example.com --ehole my_ehole.json`,
 	Run: runScan,
 }
 
@@ -76,7 +82,13 @@ func init() {
 	rootCmd.Flags().StringVarP(&proxyAddr, "proxy", "p", "", "代理地址（如 http://127.0.0.1:8080）")
 	rootCmd.Flags().IntVar(&timeout, "timeout", 10, "请求超时时间（秒）")
 	rootCmd.Flags().BoolVar(&silent, "silent", false, "静默模式，只输出命中指纹的结果")
-	rootCmd.Flags().BoolVar(&updateFinger, "update", false, "更新指纹库")
+
+	// 自定义指纹文件参数
+	rootCmd.Flags().StringVar(&eholeFile, "ehole", "", "自定义 EHole 格式指纹文件")
+	rootCmd.Flags().StringVar(&gobyFile, "goby", "", "自定义 Goby 格式指纹文件")
+	rootCmd.Flags().StringVar(&wappalyzerFile, "wappalyzer", "", "自定义 Wappalyzer 格式指纹文件")
+	rootCmd.Flags().StringVar(&fingersFile, "fingers", "", "自定义 Fingers 原生格式指纹文件")
+	rootCmd.Flags().StringVar(&fingerprintFile, "fingerprinthub", "", "自定义 FingerPrintHub 格式指纹文件")
 }
 
 // runScan 执行扫描任务
@@ -91,18 +103,17 @@ func runScan(cmd *cobra.Command, args []string) {
 		fmt.Print(Banner)
 	}
 
-	// 处理指纹更新
-	if updateFinger {
-		if err := pkg.UpdateFingerprints(); err != nil {
-			fmt.Printf("[!] 更新指纹库失败: %v\n", err)
-			os.Exit(1)
-		}
-		os.Exit(0)
+	// 加载自定义指纹文件
+	customConfig := &pkg.CustomFingerConfig{
+		EHole:       eholeFile,
+		Goby:        gobyFile,
+		Wappalyzer:  wappalyzerFile,
+		Fingers:     fingersFile,
+		FingerPrint: fingerprintFile,
 	}
-
-	// 加载本地指纹文件（如果存在）
-	if err := pkg.LoadLocalFingerprints(); err != nil {
-		fmt.Printf("[!] 加载本地指纹失败: %v\n", err)
+	if err := pkg.LoadCustomFingerprints(customConfig); err != nil {
+		fmt.Printf("[!] %v\n", err)
+		os.Exit(1)
 	}
 
 	var urls []string

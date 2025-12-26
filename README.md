@@ -56,8 +56,8 @@ xingfinger -l urls.txt -p http://127.0.0.1:8080
 # 静默模式（只输出命中结果）
 xingfinger -l urls.txt --silent
 
-# 更新指纹库
-xingfinger --update
+# 使用自定义指纹
+xingfinger -u https://example.com --ehole my_ehole.json
 ```
 
 ## 参数说明
@@ -71,7 +71,40 @@ xingfinger --update
 | `-p, --proxy` | 代理地址 |
 | `--timeout` | 请求超时时间（秒，默认 10） |
 | `--silent` | 静默模式 |
-| `--update` | 更新指纹库 |
+| `--ehole` | 自定义 EHole 格式指纹文件 |
+| `--goby` | 自定义 Goby 格式指纹文件 |
+| `--wappalyzer` | 自定义 Wappalyzer 格式指纹文件 |
+| `--fingers` | 自定义 Fingers 原生格式指纹文件 |
+| `--fingerprinthub` | 自定义 FingerPrintHub 格式指纹文件 |
+
+## 自定义指纹
+
+支持加载自定义指纹文件，格式与对应的指纹库一致：
+
+```bash
+# 使用自定义 EHole 格式指纹
+xingfinger -u https://example.com --ehole my_finger.json
+
+# 同时使用多个自定义指纹
+xingfinger -u https://example.com --ehole ehole.json --goby goby.json
+```
+
+EHole 格式示例：
+```json
+{
+  "fingerprint": [
+    {
+      "cms": "系统名称",
+      "method": "keyword",
+      "location": "body",
+      "keyword": ["特征字符串"]
+    }
+  ]
+}
+```
+
+支持的 method: `keyword`、`regular`、`faviconhash`
+支持的 location: `body`、`header`、`title`
 
 ## 参考项目
 
