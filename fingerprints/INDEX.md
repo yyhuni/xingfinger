@@ -29,36 +29,49 @@
   - 测试命令和输出
   - 关键发现
 
+### 示例对比
+- **[EXAMPLES_COMPARISON.md](EXAMPLES_COMPARISON.md)** - 指纹格式示例对比
+  - 5 种格式的示例对比分析
+  - 每种格式的独特特性
+  - 功能对比表
+  - 选择建议
+
 ## 📋 示例文件
+
+### 改进的示例文件
+
+所有示例都使用真实的 CMS 系统（**WordPress、Joomla、Drupal**）来展示每种格式的独特特性。
+
+详见 [EXAMPLES_COMPARISON.md](EXAMPLES_COMPARISON.md) 了解详细对比。
 
 ### EHole 格式
 - **[custom_ehole.json](custom_ehole.json)** - EHole 格式示例
-  - 简洁的 JSON 格式
-  - 支持 keyword、regular、faviconhash 匹配
+  - 展示了 keyword、regular 匹配方式
+  - 展示了 body、header 检测位置
   - 适合简单指纹
 
 ### Goby 格式
 - **[custom_goby.json](custom_goby.json)** - Goby 格式示例
-  - JSON 数组格式
-  - 支持逻辑组合（AND、OR）
+  - 展示了 OR 逻辑（a|b|c）
+  - 展示了 AND 逻辑（a&b）
   - 适合中等复杂度指纹
 
 ### Wappalyzer 格式
 - **[custom_wappalyzer.json](custom_wappalyzer.json)** - Wappalyzer 格式示例
-  - JSON 对象格式
-  - 支持多种检测方式
+  - 展示了多种检测方式（headers、html、scripts、meta）
+  - 展示了 implies 技术依赖
   - 适合 Web 技术识别
 
 ### Fingers 格式
 - **[custom_fingers.json](custom_fingers.json)** - Fingers 格式示例
-  - JSON 数组格式
-  - 功能完整
+  - 展示了完整的检测方式（headers、html、scripts、cookies、meta）
+  - 展示了元数据（category、website）
   - 适合复杂指纹
 
 ### FingerPrintHub 格式
 - **[custom_fingerprinthub.json](custom_fingerprinthub.json)** - FingerPrintHub 格式示例
-  - Nuclei 模板格式
-  - 最灵活和强大
+  - 展示了多种 matcher 类型（word、regex）
+  - 展示了 part 字段指定检测位置
   - 适合高级检测
 
 ## 🚀 快速使用
@@ -220,12 +233,13 @@ fingerprints/
 ├── README.md                   # 使用说明
 ├── FINGERPRINT_FORMATS.md      # 格式详解
 ├── FINGERPRINT_RESEARCH.md     # 研究报告
+├── EXAMPLES_COMPARISON.md      # 示例对比分析 ⭐ 新增
 ├── TEST_RESULTS.md             # 测试结果
-├── custom_ehole.json           # EHole 示例
-├── custom_goby.json            # Goby 示例
-├── custom_wappalyzer.json      # Wappalyzer 示例
-├── custom_fingers.json         # Fingers 示例
-└── custom_fingerprinthub.json  # FingerPrintHub 示例
+├── custom_ehole.json           # EHole 示例（改进）
+├── custom_goby.json            # Goby 示例（改进）
+├── custom_wappalyzer.json      # Wappalyzer 示例（改进）
+├── custom_fingers.json         # Fingers 示例（改进）
+└── custom_fingerprinthub.json  # FingerPrintHub 示例（改进）
 ```
 
 ## 🎯 下一步
