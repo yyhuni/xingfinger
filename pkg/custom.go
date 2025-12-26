@@ -25,6 +25,7 @@ type CustomFingerConfig struct {
 
 // LoadCustomFingerprints 加载自定义指纹文件
 // 根据配置加载用户指定的指纹文件，替换内置指纹数据
+// 当加载自定义指纹时，会清空对应的内置指纹数据
 //
 // 参数：
 //   - config: 自定义指纹配置
@@ -32,6 +33,19 @@ type CustomFingerConfig struct {
 // 返回：
 //   - error: 加载错误
 func LoadCustomFingerprints(config *CustomFingerConfig) error {
+	// 检查是否有任何自定义指纹被指定
+	hasCustom := config.EHole != "" || config.Goby != "" || config.Wappalyzer != "" ||
+		config.Fingers != "" || config.FingerPrint != ""
+
+	// 如果有自定义指纹，先清空所有内置指纹
+	if hasCustom {
+		resources.EholeData = []byte{}
+		resources.GobyData = []byte{}
+		resources.WappalyzerData = []byte{}
+		resources.FingersHTTPData = []byte{}
+		resources.FingerprinthubWebData = []byte{}
+	}
+
 	if config.EHole != "" {
 		data, err := loadFingerFile(config.EHole)
 		if err != nil {

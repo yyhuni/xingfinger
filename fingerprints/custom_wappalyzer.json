@@ -1,0 +1,18 @@
+{
+  "apps": {
+    "测试系统": {
+      "cats": [1],
+      "headers": {
+        "X-Powered-By": "TestSystem"
+      },
+      "description": "测试系统示例",
+      "website": "https://example.com"
+    },
+    "示例应用": {
+      "cats": [6],
+      "scriptSrc": ["example_app\\.js"],
+      "description": "示例应用",
+      "website": "https://example.com"
+    }
+  }
+}

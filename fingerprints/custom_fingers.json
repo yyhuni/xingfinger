@@ -1,0 +1,24 @@
+[
+  {
+    "name": "测试框架",
+    "rule": [
+      {
+        "regexps": {
+          "body": ["TestFramework"]
+        }
+      }
+    ],
+    "tag": ["test"]
+  },
+  {
+    "name": "示例系统",
+    "rule": [
+      {
+        "regexps": {
+          "header": ["X-Example-System"]
+        }
+      }
+    ],
+    "tag": ["example"]
+  }
+]

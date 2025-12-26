@@ -103,7 +103,7 @@ func runScan(cmd *cobra.Command, args []string) {
 		fmt.Print(Banner)
 	}
 
-	// 加载自定义指纹文件
+	// 构建自定义指纹配置
 	customConfig := &pkg.CustomFingerConfig{
 		EHole:       eholeFile,
 		Goby:        gobyFile,
@@ -111,6 +111,8 @@ func runScan(cmd *cobra.Command, args []string) {
 		Fingers:     fingersFile,
 		FingerPrint: fingerprintFile,
 	}
+
+	// 加载自定义指纹文件
 	if err := pkg.LoadCustomFingerprints(customConfig); err != nil {
 		fmt.Printf("[!] %v\n", err)
 		os.Exit(1)
@@ -133,7 +135,7 @@ func runScan(cmd *cobra.Command, args []string) {
 	}
 
 	// 创建扫描器并执行扫描
-	scanner := pkg.NewScanner(urls, threadNum, outputFile, proxyAddr, timeout, silent)
+	scanner := pkg.NewScanner(urls, threadNum, outputFile, proxyAddr, timeout, silent, customConfig)
 	scanner.Run()
 	os.Exit(0)
 }

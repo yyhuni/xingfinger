@@ -1,0 +1,24 @@
+[
+  {
+    "name": "测试应用",
+    "rule": [
+      {
+        "regexps": {
+          "body": ["TestApp"]
+        }
+      }
+    ],
+    "tag": ["test"]
+  },
+  {
+    "name": "演示系统",
+    "rule": [
+      {
+        "regexps": {
+          "header": ["X-Demo-System"]
+        }
+      }
+    ],
+    "tag": ["demo"]
+  }
+]

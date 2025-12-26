@@ -39,6 +39,7 @@ type Scanner struct {
 	allResults []Result        // 所有扫描结果
 	hitResults []Result        // 命中指纹的结果
 	engine     *fingers.Engine // fingers 指纹识别引擎
+	engines    []string        // 启用的指纹引擎列表
 }
 
 // NewScanner 创建扫描器实例
@@ -51,10 +52,38 @@ type Scanner struct {
 //   - proxy: 代理地址，为空则不使用代理
 //   - timeout: HTTP 请求超时时间（秒）
 //   - silent: 是否启用静默模式
+//   - customConfig: 自定义指纹配置
 //
 // 返回：
 //   - *Scanner: 扫描器实例
-func NewScanner(urls []string, thread int, output, proxy string, timeout int, silent bool) *Scanner {
+func NewScanner(urls []string, thread int, output, proxy string, timeout int, silent bool, customConfig *CustomFingerConfig) *Scanner {
+	// 确定要启用的指纹引擎
+	// 如果有自定义指纹，只启用对应的引擎
+	var enableEngines []string
+
+	if customConfig != nil && (customConfig.EHole != "" || customConfig.Goby != "" ||
+		customConfig.Wappalyzer != "" || customConfig.Fingers != "" || customConfig.FingerPrint != "") {
+		// 有自定义指纹，只启用对应的引擎
+		if customConfig.EHole != "" {
+			enableEngines = append(enableEngines, "ehole")
+		}
+		if customConfig.Goby != "" {
+			enableEngines = append(enableEngines, "goby")
+		}
+		if customConfig.Wappalyzer != "" {
+			enableEngines = append(enableEngines, "wappalyzer")
+		}
+		if customConfig.Fingers != "" {
+			enableEngines = append(enableEngines, "fingers")
+		}
+		if customConfig.FingerPrint != "" {
+			enableEngines = append(enableEngines, "fingerprinthub")
+		}
+		// 始终启用 favicon 引擎
+		enableEngines = append(enableEngines, "favicon")
+	}
+	// 如果没有自定义指纹，enableEngines 为空，NewEngine 会使用默认引擎
+
 	// 初始化 fingers 指纹识别引擎
 	// fingers 引擎聚合了多个指纹库：fingers、wappalyzer、fingerprinthub、ehole、goby
 	// 静默模式下抑制库的加载信息输出
@@ -64,10 +93,18 @@ func NewScanner(urls []string, thread int, output, proxy string, timeout int, si
 		// 临时重定向标准输出以抑制库的打印信息
 		oldStdout := os.Stdout
 		os.Stdout, _ = os.Open(os.DevNull)
-		engine, err = fingers.NewEngine()
+		if len(enableEngines) > 0 {
+			engine, err = fingers.NewEngine(enableEngines...)
+		} else {
+			engine, err = fingers.NewEngine()
+		}
 		os.Stdout = oldStdout
 	} else {
-		engine, err = fingers.NewEngine()
+		if len(enableEngines) > 0 {
+			engine, err = fingers.NewEngine(enableEngines...)
+		} else {
+			engine, err = fingers.NewEngine()
+		}
 	}
 	if err != nil {
 		fmt.Printf("[!] 初始化指纹引擎失败: %v\n", err)
@@ -84,6 +121,7 @@ func NewScanner(urls []string, thread int, output, proxy string, timeout int, si
 		allResults: []Result{},
 		hitResults: []Result{},
 		engine:     engine,
+		engines:    enableEngines,
 	}
 
 	// 设置 HTTP 请求超时时间
