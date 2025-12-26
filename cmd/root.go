@@ -49,6 +49,9 @@ func Execute() {
 }
 
 func init() {
+	// 禁用参数按字母排序，按定义顺序显示
+	rootCmd.Flags().SortFlags = false
+
 	// 目标参数
 	rootCmd.Flags().StringVarP(&targetURL, "url", "u", "", "目标 URL")
 	rootCmd.Flags().StringVarP(&urlFile, "file", "f", "", "URL 列表文件")
@@ -56,8 +59,8 @@ func init() {
 	// 扫描参数
 	rootCmd.Flags().IntVarP(&thread, "thread", "t", 50, "并发线程数")
 	rootCmd.Flags().IntVar(&timeout, "timeout", 10, "请求超时时间（秒）")
-	rootCmd.Flags().StringVarP(&output, "output", "o", "", "输出文件路径（支持 .json 和 .xlsx）")
-	rootCmd.Flags().StringVarP(&proxy, "proxy", "p", "", "代理地址（如 http://127.0.0.1:8080）")
+	rootCmd.Flags().StringVarP(&output, "output", "o", "", "输出文件路径（JSON 格式）")
+	rootCmd.Flags().StringVarP(&proxy, "proxy", "p", "", "代理地址")
 	rootCmd.Flags().BoolVarP(&silent, "silent", "s", false, "静默模式，只输出命中结果")
 
 	// 自定义指纹文件
