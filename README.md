@@ -91,6 +91,13 @@ xingfinger -u https://example.com --ehole fingerprints/custom_ehole.json --goby 
 
 自定义指纹文件放在 `fingerprints/` 目录下，详见 [fingerprints/README.md](fingerprints/README.md)。
 
+**所有自定义指纹格式已验证工作**：
+- ✅ EHole 格式 - 支持 keyword、regular、faviconhash 匹配
+- ✅ Goby 格式 - 支持 JSON 数组格式
+- ✅ Wappalyzer 格式 - 支持 JSON 对象格式
+- ✅ Fingers 格式 - 支持 Fingers 原生格式
+- ✅ FingerPrintHub 格式 - 支持 Nuclei 模板格式
+
 **EHole 格式示例**：
 ```json
 {
@@ -116,6 +123,38 @@ xingfinger -u https://example.com --ehole fingerprints/custom_ehole.json --goby 
         "label": "a",
         "feature": "特征字符串",
         "is_equal": true
+      }
+    ]
+  }
+]
+```
+
+**FingerPrintHub 格式示例**（Nuclei 模板格式）：
+```json
+[
+  {
+    "id": "test-app",
+    "info": {
+      "name": "Test App",
+      "author": "test",
+      "tags": "detect,tech,test",
+      "severity": "info",
+      "metadata": {
+        "product": "Test App",
+        "vendor": "test"
+      }
+    },
+    "http": [
+      {
+        "method": "GET",
+        "path": ["{{BaseURL}}/"],
+        "matchers": [
+          {
+            "type": "word",
+            "words": ["特征字符串"],
+            "case-insensitive": true
+          }
+        ]
       }
     ]
   }
