@@ -66,6 +66,12 @@ func NewScanner(urls []string, thread int, output, proxy string, timeout int, si
 
 	if customConfig != nil && (customConfig.EHole != "" || customConfig.Goby != "" ||
 		customConfig.Wappalyzer != "" || customConfig.Fingers != "" || customConfig.FingerPrint != "") {
+		// 加载自定义指纹文件（必须在 NewEngine 之前调用）
+		if err := LoadCustomFingerprints(customConfig, silent || jsonOutput); err != nil {
+			fmt.Printf("[!] 加载自定义指纹失败: %v\n", err)
+			os.Exit(1)
+		}
+
 		// 有自定义指纹，只启用对应的引擎
 		if customConfig.EHole != "" {
 			enableEngines = append(enableEngines, "ehole")

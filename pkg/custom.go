@@ -29,10 +29,11 @@ type CustomFingerConfig struct {
 //
 // 参数：
 //   - config: 自定义指纹配置
+//   - silent: 是否静默模式（不输出加载信息）
 //
 // 返回：
 //   - error: 加载错误
-func LoadCustomFingerprints(config *CustomFingerConfig) error {
+func LoadCustomFingerprints(config *CustomFingerConfig, silent bool) error {
 	// 检查是否有任何自定义指纹被指定
 	hasCustom := config.EHole != "" || config.Goby != "" || config.Wappalyzer != "" ||
 		config.Fingers != "" || config.FingerPrint != ""
@@ -52,7 +53,9 @@ func LoadCustomFingerprints(config *CustomFingerConfig) error {
 			return fmt.Errorf("加载 EHole 指纹失败: %v", err)
 		}
 		resources.EholeData = data
-		fmt.Printf("[*] 已加载自定义 EHole 指纹: %s\n", config.EHole)
+		if !silent {
+			fmt.Printf("[*] 已加载自定义 EHole 指纹: %s\n", config.EHole)
+		}
 	}
 
 	if config.Goby != "" {
@@ -61,7 +64,9 @@ func LoadCustomFingerprints(config *CustomFingerConfig) error {
 			return fmt.Errorf("加载 Goby 指纹失败: %v", err)
 		}
 		resources.GobyData = data
-		fmt.Printf("[*] 已加载自定义 Goby 指纹: %s\n", config.Goby)
+		if !silent {
+			fmt.Printf("[*] 已加载自定义 Goby 指纹: %s\n", config.Goby)
+		}
 	}
 
 	if config.Wappalyzer != "" {
@@ -70,7 +75,9 @@ func LoadCustomFingerprints(config *CustomFingerConfig) error {
 			return fmt.Errorf("加载 Wappalyzer 指纹失败: %v", err)
 		}
 		resources.WappalyzerData = data
-		fmt.Printf("[*] 已加载自定义 Wappalyzer 指纹: %s\n", config.Wappalyzer)
+		if !silent {
+			fmt.Printf("[*] 已加载自定义 Wappalyzer 指纹: %s\n", config.Wappalyzer)
+		}
 	}
 
 	if config.Fingers != "" {
@@ -79,7 +86,9 @@ func LoadCustomFingerprints(config *CustomFingerConfig) error {
 			return fmt.Errorf("加载 Fingers 指纹失败: %v", err)
 		}
 		resources.FingersHTTPData = data
-		fmt.Printf("[*] 已加载自定义 Fingers 指纹: %s\n", config.Fingers)
+		if !silent {
+			fmt.Printf("[*] 已加载自定义 Fingers 指纹: %s\n", config.Fingers)
+		}
 	}
 
 	if config.FingerPrint != "" {
@@ -88,7 +97,9 @@ func LoadCustomFingerprints(config *CustomFingerConfig) error {
 			return fmt.Errorf("加载 FingerPrintHub 指纹失败: %v", err)
 		}
 		resources.FingerprinthubWebData = data
-		fmt.Printf("[*] 已加载自定义 FingerPrintHub 指纹: %s\n", config.FingerPrint)
+		if !silent {
+			fmt.Printf("[*] 已加载自定义 FingerPrintHub 指纹: %s\n", config.FingerPrint)
+		}
 	}
 
 	return nil
