@@ -6,6 +6,7 @@
 package pkg
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -36,6 +37,7 @@ type Scanner struct {
 	output     string          // 输出文件路径
 	proxy      string          // 代理地址
 	silent     bool            // 静默模式，只输出命中结果
+	jsonOutput bool            // JSON 格式输出到终端
 	allResults []Result        // 所有扫描结果
 	hitResults []Result        // 命中指纹的结果
 	engine     *fingers.Engine // fingers 指纹识别引擎
@@ -52,11 +54,12 @@ type Scanner struct {
 //   - proxy: 代理地址，为空则不使用代理
 //   - timeout: HTTP 请求超时时间（秒）
 //   - silent: 是否启用静默模式
+//   - jsonOutput: 是否以 JSON 格式输出到终端
 //   - customConfig: 自定义指纹配置
 //
 // 返回：
 //   - *Scanner: 扫描器实例
-func NewScanner(urls []string, thread int, output, proxy string, timeout int, silent bool, customConfig *CustomFingerConfig) *Scanner {
+func NewScanner(urls []string, thread int, output, proxy string, timeout int, silent, jsonOutput bool, customConfig *CustomFingerConfig) *Scanner {
 	// 确定要启用的指纹引擎
 	// 如果有自定义指纹，只启用对应的引擎
 	var enableEngines []string
@@ -118,6 +121,7 @@ func NewScanner(urls []string, thread int, output, proxy string, timeout int, si
 		output:     output,
 		proxy:      proxy,
 		silent:     silent,
+		jsonOutput: jsonOutput,
 		allResults: []Result{},
 		hitResults: []Result{},
 		engine:     engine,
@@ -151,8 +155,8 @@ func (s *Scanner) Run() {
 	// 等待所有 goroutine 完成
 	s.wg.Wait()
 
-	// 输出扫描统计（非静默模式）
-	if !s.silent {
+	// 输出扫描统计（非静默模式且非 JSON 模式）
+	if !s.silent && !s.jsonOutput {
 		color.RGBStyleFromString("244,211,49").Printf("\n[+] Scanned: %d, Matched: %d\n", len(s.allResults), len(s.hitResults))
 	}
 
@@ -303,6 +307,13 @@ func (s *Scanner) scan() {
 // 参数：
 //   - result: 扫描结果
 func (s *Scanner) printResult(result Result) {
+	// JSON 输出模式
+	if s.jsonOutput {
+		data, _ := json.Marshal(result)
+		fmt.Println(string(data))
+		return
+	}
+
 	// 静默模式：只输出命中指纹的结果
 	if s.silent {
 		if result.CMS != "" {
