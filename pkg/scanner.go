@@ -46,6 +46,26 @@ type Scanner struct {
 	engines      []string        // 启用的指纹引擎列表
 }
 
+var openSilentWriter = func() (*os.File, error) {
+	return os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+}
+
+func withSilentStdout(fn func() error) error {
+	silentWriter, err := openSilentWriter()
+	if err != nil {
+		return err
+	}
+
+	oldStdout := os.Stdout
+	os.Stdout = silentWriter
+	defer func() {
+		os.Stdout = oldStdout
+		_ = silentWriter.Close()
+	}()
+
+	return fn()
+}
+
 // NewScanner 创建扫描器实例
 // 初始化 fingers 引擎和任务队列
 //
@@ -76,10 +96,10 @@ func NewScanner(urls []string, thread int, output, proxy string, timeout int, si
 	// 初始化默认指纹引擎（除非禁用）
 	if !noDefault {
 		if silent || jsonOutput {
-			oldStdout := os.Stdout
-			os.Stdout, _ = os.Open(os.DevNull)
-			engine, err = fingers.NewEngine()
-			os.Stdout = oldStdout
+			err = withSilentStdout(func() error {
+				engine, err = fingers.NewEngine()
+				return err
+			})
 		} else {
 			engine, err = fingers.NewEngine()
 		}
@@ -117,10 +137,10 @@ func NewScanner(urls []string, thread int, output, proxy string, timeout int, si
 		customEngines = append(customEngines, "favicon")
 
 		if silent || jsonOutput {
-			oldStdout := os.Stdout
-			os.Stdout, _ = os.Open(os.DevNull)
-			customEngine, err = fingers.NewEngine(customEngines...)
-			os.Stdout = oldStdout
+			err = withSilentStdout(func() error {
+				customEngine, err = fingers.NewEngine(customEngines...)
+				return err
+			})
 		} else {
 			customEngine, err = fingers.NewEngine(customEngines...)
 		}

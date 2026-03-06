@@ -1,6 +1,6 @@
 # XingFinger
 
-![Author](https://img.shields.io/badge/Author-yyhuni-green) ![language](https://img.shields.io/badge/language-Golang-green) ![Go Version](https://img.shields.io/badge/Go-1.15+-blue)
+![Author](https://img.shields.io/badge/Author-yyhuni-green) ![language](https://img.shields.io/badge/language-Golang-green) ![Go Version](https://img.shields.io/badge/Go-1.26+-blue)
 
 ```
   __  ___                _____ _                       
@@ -23,6 +23,8 @@ XingFinger 是一款高效的 Web 指纹识别工具，基于 [chainreactors/fin
 - 🌐 **ARL 指纹支持** - 支持灯塔 ARL YAML 格式指纹（9000+ 条规则）
 
 ## 安装
+
+> 需要 Go 1.26 或更高版本。
 
 **方式一：go install（推荐）**
 
