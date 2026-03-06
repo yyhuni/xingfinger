@@ -4,6 +4,7 @@ package pkg
 
 import (
 	"bytes"
+	"compress/zlib"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
@@ -107,6 +108,16 @@ func buildRawResponse(resp *http.Response, body []byte) []byte {
 	return buf.Bytes()
 }
 
+// decodeDeflateBody 解压 deflate 响应体
+func decodeDeflateBody(data []byte) ([]byte, error) {
+	reader, err := zlib.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	return io.ReadAll(reader)
+}
+
 // fetch 发送 HTTP 请求并解析响应
 // 这是核心的 HTTP 请求函数，负责：
 // 1. 创建 HTTP 客户端（支持代理和 TLS）
@@ -159,8 +170,19 @@ func fetch(task []string, proxy string) (*Response, error) {
 	}
 	defer resp.Body.Close()
 
-	// 读取原始响应体
+	// 读取响应体
 	rawBody, _ := io.ReadAll(resp.Body)
+
+	// 处理未被标准库自动解压的响应编码
+	contentEncoding := strings.ToLower(strings.TrimSpace(resp.Header.Get("Content-Encoding")))
+	if contentEncoding == "deflate" {
+		decodedBody, err := decodeDeflateBody(rawBody)
+		if err == nil {
+			rawBody = decodedBody
+			resp.Header.Del("Content-Encoding")
+			resp.Header.Del("Content-Length")
+		}
+	}
 
 	// 构建原始 HTTP 响应（供 fingers 引擎使用）
 	rawContent := buildRawResponse(resp, rawBody)
@@ -177,10 +199,12 @@ func fetch(task []string, proxy string) (*Response, error) {
 		server = p
 	}
 
+	finalURL := resp.Request.URL.String()
+
 	// 解析 JS 跳转（仅对主页面进行）
 	var jsURLs []string
 	if task[1] == "0" {
-		jsURLs = parseJSRedirect(body, task[0])
+		jsURLs = parseJSRedirect(body, finalURL)
 	}
 
 	// 构建 header 字符串供 ARL 匹配使用
@@ -195,7 +219,7 @@ func fetch(task []string, proxy string) (*Response, error) {
 	}
 
 	return &Response{
-		URL:        task[0],
+		URL:        finalURL,
 		RawContent: rawContent,
 		Body:       body,
 		Header:     headerStr.String(),
@@ -219,11 +243,10 @@ func fetch(task []string, proxy string) (*Response, error) {
 //   - favicon 的完整 URL
 func extractFaviconURL(body, baseURL string) string {
 	// 解析基础 URL
-	u, err := url.Parse(baseURL)
+	base, err := url.Parse(baseURL)
 	if err != nil {
 		return ""
 	}
-	base := u.Scheme + "://" + u.Host
 
 	// 尝试从 HTML 中提取 favicon 路径
 	// 匹配 <link rel="icon" href="xxx"> 或 <link rel="shortcut icon" href="xxx">
@@ -237,22 +260,21 @@ func extractFaviconURL(body, baseURL string) string {
 		re := regexp.MustCompile(`(?i)` + pattern)
 		match := re.FindStringSubmatch(body)
 		if len(match) > 1 {
-			faviconPath := match[1]
-			// 处理不同格式的路径
-			if strings.HasPrefix(faviconPath, "//") {
-				return "http:" + faviconPath
-			} else if strings.HasPrefix(faviconPath, "http") {
-				return faviconPath
-			} else if strings.HasPrefix(faviconPath, "/") {
-				return base + faviconPath
-			} else {
-				return base + "/" + faviconPath
+			faviconPath := strings.TrimSpace(match[1])
+			ref, err := url.Parse(faviconPath)
+			if err != nil {
+				continue
 			}
+			return base.ResolveReference(ref).String()
 		}
 	}
 
 	// 默认使用 /favicon.ico
-	return base + "/favicon.ico"
+	defaultRef, err := url.Parse("/favicon.ico")
+	if err != nil {
+		return ""
+	}
+	return base.ResolveReference(defaultRef).String()
 }
 
 // fetchFavicon 获取 favicon 内容

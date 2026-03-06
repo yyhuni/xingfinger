@@ -4,6 +4,7 @@
 package pkg
 
 import (
+	"io"
 	"regexp"
 	"strings"
 
@@ -33,7 +34,7 @@ func decodeToUTF8(content, contentType string) string {
 	}
 
 	// 如果仍为 UTF-8，尝试通过 title 内容检测
-	if enc := detectTitleEncoding(content); enc != "" && encoding == "utf-8" {
+	if enc := detectTitleEncoding(content); enc != "" && (encoding == "" || encoding == "utf-8") {
 		encoding = enc
 	}
 
@@ -57,18 +58,19 @@ func detectEncoding(contentType string) string {
 	switch {
 	case strings.Contains(contentType, "gbk"),
 		strings.Contains(contentType, "gb2312"),
-		strings.Contains(contentType, "gb18030"),
-		strings.Contains(contentType, "windows-1252"):
+		strings.Contains(contentType, "gb18030"):
 		// 中文 GBK 系列编码统一使用 gb18030（兼容性最好）
 		return "gb18030"
+	case strings.Contains(contentType, "windows-1252"):
+		return "windows-1252"
 	case strings.Contains(contentType, "big5"):
 		// 繁体中文 Big5 编码
 		return "big5"
 	case strings.Contains(contentType, "utf-8"):
 		return "utf-8"
 	}
-	// 默认假设为 gb18030（中文网站常见）
-	return "gb18030"
+	// 未识别到明确编码时，保守处理为未知
+	return ""
 }
 
 // extractMetaCharset 从 HTML meta 标签提取 charset 声明
@@ -122,12 +124,30 @@ func convertEncoding(src, from, to string) string {
 		return src
 	}
 
-	// 先解码为中间格式
-	decoder := mahonia.NewDecoder(from)
-	result := decoder.ConvertString(src)
+	if strings.EqualFold(to, "utf-8") {
+		reader, err := charset.NewReaderLabel(from, strings.NewReader(src))
+		if err == nil {
+			data, err := io.ReadAll(reader)
+			if err == nil {
+				return string(data)
+			}
+		}
+	}
 
-	// 再编码为目标格式
+	// 回退到 mahonia 处理常见编码
+	decoder := mahonia.NewDecoder(from)
+	if decoder == nil {
+		return src
+	}
+	result := decoder.ConvertString(src)
+	if strings.EqualFold(to, "utf-8") {
+		return result
+	}
+
 	encoder := mahonia.NewDecoder(to)
+	if encoder == nil {
+		return result
+	}
 	_, data, _ := encoder.Translate([]byte(result), true)
 	return string(data)
 }

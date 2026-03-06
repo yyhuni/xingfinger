@@ -325,12 +325,7 @@ func (s *Scanner) scan() {
 		// 发送 HTTP 请求
 		resp, err := fetch(task, s.proxy)
 		if err != nil {
-			// 如果 HTTPS 失败，尝试 HTTP
-			task[0] = strings.ReplaceAll(task[0], "https://", "http://")
-			resp, err = fetch(task, s.proxy)
-			if err != nil {
-				continue
-			}
+			continue
 		}
 
 		// 处理 JS 跳转
@@ -368,8 +363,8 @@ func (s *Scanner) scan() {
 			}
 		}
 
-		// 主动获取 favicon 进行指纹检测（仅对主页面，且未使用 ARL）
-		if task[1] == "0" && s.arlEngine == nil {
+		// 主动获取 favicon 进行指纹检测（仅对主页面）
+		if task[1] == "0" {
 			faviconMatches := s.detectFavicon(resp.Body, resp.URL)
 			for _, faviconMatch := range faviconMatches {
 				// 检查是否已存在，避免重复

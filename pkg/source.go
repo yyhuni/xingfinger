@@ -39,7 +39,8 @@ func LoadFromFile(filename string) (urls []string) {
 		}
 
 		// 检查是否已包含协议前缀
-		if strings.Contains(line, "http") {
+		lowerLine := strings.ToLower(line)
+		if strings.HasPrefix(lowerLine, "http://") || strings.HasPrefix(lowerLine, "https://") {
 			urls = append(urls, line)
 		} else {
 			// 默认添加 https:// 前缀

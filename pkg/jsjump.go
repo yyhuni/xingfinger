@@ -3,6 +3,7 @@
 package pkg
 
 import (
+	"net/url"
 	"regexp"
 	"strings"
 )
@@ -38,35 +39,41 @@ func extractRegex(pattern, content string) [][]string {
 func parseJSRedirect(body, baseURL string) []string {
 	// 定义常见的 JS 跳转正则模式
 	patterns := []string{
-		`(window|top)\.location\.href = ['"](.*?)['"]`, // window.location.href 跳转
-		`redirectUrl = ['"](.*?)['"]`,                  // redirectUrl 变量赋值
-		`<meta.*?http-equiv=.*?refresh.*?url=(.*?)>`,   // meta refresh 跳转
+		`(window|top)\.location\.href\s*=\s*['"](.*?)['"]`, // window.location.href 跳转
+		`redirectUrl\s*=\s*['"](.*?)['"]`,                  // redirectUrl 变量赋值
+		`<meta.*?http-equiv=.*?refresh.*?url=(.*?)>`,       // meta refresh 跳转
+	}
+
+	base, err := url.Parse(baseURL)
+	if err != nil {
+		return nil
 	}
 
 	var results []string
+	seen := make(map[string]bool)
 	for _, p := range patterns {
 		matches := extractRegex(p, body)
 		for _, m := range matches {
 			if len(m) == 0 {
 				continue
 			}
-			// 获取最后一个捕获组（即 URL 部分）
-			path := m[len(m)-1]
 
-			// 跳过完整 URL 和空路径
-			if strings.Contains(path, "http") || len(path) == 0 {
+			redirectPath := strings.TrimSpace(m[len(m)-1])
+			redirectPath = strings.Trim(redirectPath, `"'`)
+			if redirectPath == "" {
 				continue
 			}
 
-			// 清理路径
-			path = strings.Trim(path, "/")
-			path = strings.ReplaceAll(path, "../", "/")
-
-			// 构建完整 URL
-			if !strings.HasSuffix(baseURL, "/") {
-				baseURL += "/"
+			ref, err := url.Parse(redirectPath)
+			if err != nil {
+				continue
 			}
-			results = append(results, baseURL+path)
+
+			resolved := base.ResolveReference(ref).String()
+			if !seen[resolved] {
+				seen[resolved] = true
+				results = append(results, resolved)
+			}
 		}
 	}
 	return results
