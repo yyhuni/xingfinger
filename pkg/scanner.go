@@ -30,20 +30,21 @@ type Result struct {
 // Scanner 指纹扫描器
 // 负责管理扫描任务队列、并发控制和结果收集
 type Scanner struct {
-	queue        *Queue          // URL 任务队列
-	wg           sync.WaitGroup  // 等待组，用于同步所有扫描 goroutine
-	mu           sync.Mutex      // 互斥锁，保护结果切片的并发写入
-	thread       int             // 并发线程数
-	output       string          // 输出文件路径
-	proxy        string          // 代理地址
-	silent       bool            // 静默模式，只输出命中结果
-	jsonOutput   bool            // JSON 格式输出到终端
-	allResults   []Result        // 所有扫描结果
-	hitResults   []Result        // 命中指纹的结果
-	engine       *fingers.Engine // fingers 指纹识别引擎（默认指纹）
-	customEngine *fingers.Engine // 自定义指纹引擎
-	arlEngine    *ARLEngine      // ARL 指纹匹配引擎
-	engines      []string        // 启用的指纹引擎列表
+	queue          *Queue          // URL 任务队列
+	wg             sync.WaitGroup  // 等待组，用于同步所有扫描 goroutine
+	mu             sync.Mutex      // 互斥锁，保护结果切片的并发写入
+	thread         int             // 并发线程数
+	output         string          // 输出文件路径
+	proxy          string          // 代理地址
+	silent         bool            // 静默模式，只输出命中结果
+	jsonOutput     bool            // JSON 格式输出到终端
+	allResults     []Result        // 所有扫描结果
+	hitResults     []Result        // 命中指纹的结果
+	engine         *fingers.Engine // fingers 指纹识别引擎（默认指纹）
+	customEngine   *fingers.Engine // 自定义指纹引擎
+	arlEngine      *ARLEngine      // ARL 指纹匹配引擎
+	engines        []string        // 启用的指纹引擎列表
+	redirectPolicy RedirectPolicy  // 跳转策略
 }
 
 var openSilentWriter = func() (*os.File, error) {
@@ -82,6 +83,10 @@ func withSilentStdout(fn func() error) error {
 // 返回：
 //   - *Scanner: 扫描器实例
 func NewScanner(urls []string, thread int, output, proxy string, timeout int, silent, jsonOutput bool, customConfig *CustomFingerConfig) *Scanner {
+	return NewScannerWithPolicy(urls, thread, output, proxy, timeout, silent, jsonOutput, RedirectPolicyAll, customConfig)
+}
+
+func NewScannerWithPolicy(urls []string, thread int, output, proxy string, timeout int, silent, jsonOutput bool, redirectPolicy RedirectPolicy, customConfig *CustomFingerConfig) *Scanner {
 	// 检查是否禁用默认指纹
 	noDefault := customConfig != nil && customConfig.NoDefault
 
@@ -158,16 +163,17 @@ func NewScanner(urls []string, thread int, output, proxy string, timeout int, si
 
 	// 创建扫描器实例
 	s := &Scanner{
-		queue:        NewQueue(),
-		thread:       thread,
-		output:       output,
-		proxy:        proxy,
-		silent:       silent,
-		jsonOutput:   jsonOutput,
-		allResults:   []Result{},
-		hitResults:   []Result{},
-		engine:       engine,
-		customEngine: customEngine,
+		queue:          NewQueue(),
+		thread:         thread,
+		output:         output,
+		proxy:          proxy,
+		silent:         silent,
+		jsonOutput:     jsonOutput,
+		allResults:     []Result{},
+		hitResults:     []Result{},
+		engine:         engine,
+		customEngine:   customEngine,
+		redirectPolicy: redirectPolicy,
 	}
 
 	// 初始化 ARL 引擎（如果指定了 ARL 指纹文件）
@@ -343,16 +349,22 @@ func (s *Scanner) scan() {
 		}
 
 		// 发送 HTTP 请求
-		resp, err := fetch(task, s.proxy)
+		resp, err := fetchWithPolicy(task, s.proxy, s.redirectPolicy)
 		if err != nil {
 			continue
 		}
 
-		// 处理 JS 跳转
-		// 将 JS 跳转的 URL 添加到队列继续扫描
-		for _, jsURL := range resp.JsURLs {
-			if jsURL != "" {
-				s.queue.Push([]string{jsURL, "1"})
+		if task[1] == "0" && s.redirectPolicy.FollowContent() {
+			for _, jsURL := range resp.JsURLs {
+				if jsURL == "" {
+					continue
+				}
+
+				redirectResp, redirectErr := fetchWithPolicy([]string{jsURL, "1"}, s.proxy, s.redirectPolicy)
+				if redirectErr == nil {
+					resp = redirectResp
+				}
+				break
 			}
 		}
 

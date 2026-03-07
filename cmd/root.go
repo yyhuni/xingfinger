@@ -13,15 +13,16 @@ import (
 
 var (
 	// 命令行参数
-	targetURL  string // 单个目标 URL
-	urlFile    string // URL 列表文件
-	thread     int    // 并发线程数
-	timeout    int    // 请求超时时间
-	output     string // 输出文件路径
-	proxy      string // 代理地址
-	silent     bool   // 静默模式
-	jsonOutput bool   // JSON 格式输出到终端
-	noDefault  bool   // 禁用默认指纹
+	targetURL      string // 单个目标 URL
+	urlFile        string // URL 列表文件
+	thread         int    // 并发线程数
+	timeout        int    // 请求超时时间
+	output         string // 输出文件路径
+	proxy          string // 代理地址
+	silent         bool   // 静默模式，只输出命中结果
+	jsonOutput     bool   // JSON 格式输出到终端
+	noDefault      bool   // 禁用默认指纹
+	redirectPolicy string // 跳转策略
 
 	// 自定义指纹文件
 	eholeFile       string // EHole 指纹文件
@@ -67,6 +68,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&silent, "silent", "s", false, "静默模式，只输出命中结果")
 	rootCmd.Flags().BoolVarP(&jsonOutput, "json", "j", false, "终端输出 JSON 格式")
 	rootCmd.Flags().BoolVar(&noDefault, "no-default", false, "禁用默认指纹，仅使用自定义指纹")
+	rootCmd.Flags().StringVar(&redirectPolicy, "redirect-policy", string(pkg.RedirectPolicyNever), "跳转策略: never|http|all")
 
 	// 自定义指纹文件
 	rootCmd.Flags().StringVar(&eholeFile, "ehole", "", "自定义 EHole 指纹文件")
@@ -79,6 +81,12 @@ func init() {
 
 // runScan 执行扫描
 func runScan(cmd *cobra.Command, args []string) {
+	policy, err := pkg.ParseRedirectPolicy(redirectPolicy)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	// 收集目标 URL
 	var urls []string
 
@@ -117,6 +125,6 @@ func runScan(cmd *cobra.Command, args []string) {
 	}
 
 	// 创建扫描器并运行
-	scanner := pkg.NewScanner(urls, thread, output, proxy, timeout, silent, jsonOutput, customConfig)
+	scanner := pkg.NewScannerWithPolicy(urls, thread, output, proxy, timeout, silent, jsonOutput, policy, customConfig)
 	scanner.Run()
 }

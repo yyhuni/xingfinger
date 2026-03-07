@@ -133,6 +133,10 @@ func decodeDeflateBody(data []byte) ([]byte, error) {
 //   - *Response: 解析后的响应结构体
 //   - error: 错误信息
 func fetch(task []string, proxy string) (*Response, error) {
+	return fetchWithPolicy(task, proxy, RedirectPolicyAll)
+}
+
+func fetchWithPolicy(task []string, proxy string, redirectPolicy RedirectPolicy) (*Response, error) {
 	// 创建 HTTP 传输层，跳过 TLS 证书验证
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -148,6 +152,11 @@ func fetch(task []string, proxy string) (*Response, error) {
 	client := &http.Client{
 		Timeout:   time.Duration(Timeout) * time.Second,
 		Transport: transport,
+	}
+	if !redirectPolicy.FollowHTTP() {
+		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
 	}
 
 	// 创建请求
@@ -203,7 +212,7 @@ func fetch(task []string, proxy string) (*Response, error) {
 
 	// 解析 JS 跳转（仅对主页面进行）
 	var jsURLs []string
-	if task[1] == "0" {
+	if task[1] == "0" && redirectPolicy.FollowContent() {
 		jsURLs = parseJSRedirect(body, finalURL)
 	}
 

@@ -45,6 +45,7 @@ func resetRootCommandForTest() {
 	silent = false
 	jsonOutput = false
 	noDefault = false
+	redirectPolicy = string(pkg.RedirectPolicyNever)
 	eholeFile = ""
 	gobyFile = ""
 	wappalyzerFile = ""
@@ -101,6 +102,16 @@ func newLocalTLSTestServer(t *testing.T, handler http.HandlerFunc) *httptest.Ser
 func runCLICommand(t *testing.T, args []string) string {
 	t.Helper()
 
+	output, err := runCLICommandWithError(t, args)
+	if err != nil {
+		t.Fatalf("CombinedOutput() error = %v, output = %s", err, output)
+	}
+	return output
+}
+
+func runCLICommandWithError(t *testing.T, args []string) (string, error) {
+	t.Helper()
+
 	argsJSON, err := json.Marshal(args)
 	if err != nil {
 		t.Fatalf("Marshal() error = %v", err)
@@ -113,10 +124,7 @@ func runCLICommand(t *testing.T, args []string) string {
 	)
 
 	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("CombinedOutput() error = %v, output = %s", err, output)
-	}
-	return string(output)
+	return string(output), err
 }
 
 func writeEHoleFingerprintsFile(t *testing.T, fingerprints ...eHoleFingerprint) string {
@@ -157,6 +165,17 @@ func writeURLListFile(t *testing.T, urls ...string) string {
 func parseFirstJSONResult(t *testing.T, output string) pkg.Result {
 	t.Helper()
 
+	results := parseJSONResults(t, output)
+	if len(results) == 0 {
+		t.Fatalf("expected JSON output from CLI scan, output = %s", output)
+	}
+	return results[0]
+}
+
+func parseJSONResults(t *testing.T, output string) []pkg.Result {
+	t.Helper()
+
+	var results []pkg.Result
 	for _, candidate := range strings.Split(strings.TrimSpace(output), "\n") {
 		candidate = strings.TrimSpace(candidate)
 		if !strings.HasPrefix(candidate, "{") {
@@ -166,11 +185,9 @@ func parseFirstJSONResult(t *testing.T, output string) pkg.Result {
 		if err := json.Unmarshal([]byte(candidate), &result); err != nil {
 			t.Fatalf("Unmarshal() error = %v, output = %s", err, output)
 		}
-		return result
+		results = append(results, result)
 	}
-
-	t.Fatalf("expected JSON output from CLI scan, output = %s", output)
-	return pkg.Result{}
+	return results
 }
 
 func readResultsFile(t *testing.T, filename string) []pkg.Result {
@@ -453,7 +470,7 @@ func TestExecuteScansLocalTLSServerE2E(t *testing.T) {
 	}
 }
 
-func TestExecuteFollowsHTTPRedirectE2E(t *testing.T) {
+func TestExecuteRedirectPolicyDefaultsToNeverE2E(t *testing.T) {
 	server := newLocalTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/start":
@@ -482,7 +499,59 @@ func TestExecuteFollowsHTTPRedirectE2E(t *testing.T) {
 		"--timeout", "2",
 	})
 
-	result := parseFirstJSONResult(t, output)
+	results := parseJSONResults(t, output)
+	if len(results) != 1 {
+		t.Fatalf("len(results) = %d, want 1", len(results))
+	}
+
+	result := results[0]
+	if result.URL != server.URL+"/start" {
+		t.Fatalf("result.URL = %q, want %q", result.URL, server.URL+"/start")
+	}
+	if result.StatusCode != http.StatusFound {
+		t.Fatalf("result.StatusCode = %d, want %d", result.StatusCode, http.StatusFound)
+	}
+	if result.CMS != "" {
+		t.Fatalf("result.CMS = %q, want empty", result.CMS)
+	}
+}
+
+func TestExecuteRedirectPolicyHTTPFollowsHTTPRedirectE2E(t *testing.T) {
+	server := newLocalTestServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/start":
+			http.Redirect(w, r, "/landing", http.StatusFound)
+		case "/landing":
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			fmt.Fprint(w, `<html><head><title>Redirect Site</title></head><body>redirect-keyword</body></html>`)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	eholePath := writeEHoleFingerprintsFile(t, eHoleFingerprint{
+		CMS:      "RedirectCMS",
+		Method:   "keyword",
+		Location: "body",
+		Keyword:  []string{"redirect-keyword"},
+	})
+
+	output := runCLICommand(t, []string{
+		"-u", server.URL + "/start",
+		"--redirect-policy", "http",
+		"--ehole", eholePath,
+		"--no-default",
+		"-j",
+		"-t", "1",
+		"--timeout", "2",
+	})
+
+	results := parseJSONResults(t, output)
+	if len(results) != 1 {
+		t.Fatalf("len(results) = %d, want 1", len(results))
+	}
+
+	result := results[0]
 	if result.URL != server.URL+"/landing" {
 		t.Fatalf("result.URL = %q, want %q", result.URL, server.URL+"/landing")
 	}
@@ -494,7 +563,7 @@ func TestExecuteFollowsHTTPRedirectE2E(t *testing.T) {
 	}
 }
 
-func TestExecuteFollowsJSRedirectE2E(t *testing.T) {
+func TestExecuteRedirectPolicyNeverSkipsContentRedirectsE2E(t *testing.T) {
 	server := newLocalTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		switch r.URL.Path {
@@ -513,7 +582,7 @@ func TestExecuteFollowsJSRedirectE2E(t *testing.T) {
 		Location: "body",
 		Keyword:  []string{"js-keyword"},
 	})
-	outputFile := filepath.Join(t.TempDir(), "js-results.json")
+	outputFile := filepath.Join(t.TempDir(), "js-results-never.json")
 
 	_ = runCLICommand(t, []string{
 		"-u", server.URL + "/start",
@@ -525,27 +594,80 @@ func TestExecuteFollowsJSRedirectE2E(t *testing.T) {
 	})
 
 	results := readResultsFile(t, outputFile)
-	if len(results) != 2 {
-		t.Fatalf("len(results) = %d, want 2", len(results))
+	if len(results) != 1 {
+		t.Fatalf("len(results) = %d, want 1", len(results))
 	}
 
-	startResult, ok := findResultByURL(results, server.URL+"/start")
-	if !ok {
-		t.Fatalf("missing result for %s/start", server.URL)
+	result := results[0]
+	if result.URL != server.URL+"/start" {
+		t.Fatalf("result.URL = %q, want %q", result.URL, server.URL+"/start")
 	}
-	landingResult, ok := findResultByURL(results, server.URL+"/landing")
-	if !ok {
-		t.Fatalf("missing result for %s/landing", server.URL)
+	if result.Title != "JS Start" {
+		t.Fatalf("result.Title = %q, want %q", result.Title, "JS Start")
+	}
+	if result.CMS != "" {
+		t.Fatalf("result.CMS = %q, want empty", result.CMS)
+	}
+}
+
+func TestExecuteRedirectPolicyAllFollowsContentRedirectE2E(t *testing.T) {
+	server := newLocalTestServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		switch r.URL.Path {
+		case "/start":
+			fmt.Fprint(w, `<html><head><title>JS Start</title><script>window.location.href='/landing'</script></head><body>start</body></html>`)
+		case "/landing":
+			fmt.Fprint(w, `<html><head><title>JS Landing</title></head><body>js-keyword</body></html>`)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	eholePath := writeEHoleFingerprintsFile(t, eHoleFingerprint{
+		CMS:      "JSCMS",
+		Method:   "keyword",
+		Location: "body",
+		Keyword:  []string{"js-keyword"},
+	})
+	outputFile := filepath.Join(t.TempDir(), "js-results-all.json")
+
+	_ = runCLICommand(t, []string{
+		"-u", server.URL + "/start",
+		"--redirect-policy", "all",
+		"-o", outputFile,
+		"--ehole", eholePath,
+		"--no-default",
+		"-t", "1",
+		"--timeout", "2",
+	})
+
+	results := readResultsFile(t, outputFile)
+	if len(results) != 1 {
+		t.Fatalf("len(results) = %d, want 1", len(results))
 	}
 
-	if startResult.Title != "JS Start" {
-		t.Fatalf("startResult.Title = %q, want %q", startResult.Title, "JS Start")
+	result := results[0]
+	if result.URL != server.URL+"/landing" {
+		t.Fatalf("result.URL = %q, want %q", result.URL, server.URL+"/landing")
 	}
-	if landingResult.Title != "JS Landing" {
-		t.Fatalf("landingResult.Title = %q, want %q", landingResult.Title, "JS Landing")
+	if result.Title != "JS Landing" {
+		t.Fatalf("result.Title = %q, want %q", result.Title, "JS Landing")
 	}
-	if !strings.Contains(strings.ToLower(landingResult.CMS), "jscms") {
-		t.Fatalf("landingResult.CMS = %q, want contains %q", landingResult.CMS, "JSCMS")
+	if !strings.Contains(strings.ToLower(result.CMS), "jscms") {
+		t.Fatalf("result.CMS = %q, want contains %q", result.CMS, "JSCMS")
+	}
+}
+
+func TestExecuteRedirectPolicyRejectsInvalidValue(t *testing.T) {
+	output, err := runCLICommandWithError(t, []string{
+		"-u", "https://example.com",
+		"--redirect-policy", "wat",
+	})
+	if err == nil {
+		t.Fatalf("expected error, output = %s", output)
+	}
+	if !strings.Contains(output, "invalid redirect policy") {
+		t.Fatalf("output = %q, want contains %q", output, "invalid redirect policy")
 	}
 }
 
