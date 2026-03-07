@@ -68,6 +68,15 @@ xingfinger -l urls.txt -p http://127.0.0.1:8080
 # 静默模式（只输出命中结果）
 xingfinger -l urls.txt -s
 
+# 默认不跟跳转；只看原始响应
+xingfinger -u www.baidu.com
+
+# 只跟随 HTTP 3xx 跳转
+xingfinger -u www.baidu.com --redirect-policy http
+
+# 跟随 HTTP 3xx + JS / meta refresh 跳转
+xingfinger -u www.baidu.com --redirect-policy all
+
 # 使用自定义指纹（与默认指纹叠加）
 xingfinger -u https://example.com --ehole my_ehole.json
 
@@ -91,6 +100,7 @@ xingfinger -l urls.txt -j | jq 'select(.cms | contains("shiro"))'
 | `--timeout` | 请求超时时间（秒） | 10 |
 | `-o, --output` | 输出文件路径（JSON 格式） | - |
 | `-p, --proxy` | 代理地址 | - |
+| `--redirect-policy` | 跳转策略：`never` 不跟跳转，`http` 只跟 HTTP 3xx，`all` 跟 HTTP 3xx + JS / `meta refresh` | `never` |
 | `-s, --silent` | 静默模式，只输出命中结果 | false |
 | `-j, --json` | 终端输出 JSON 格式 | false |
 | `--no-default` | 禁用默认指纹，仅使用自定义指纹 | false |
@@ -104,6 +114,8 @@ xingfinger -l urls.txt -j | jq 'select(.cms | contains("shiro"))'
 ## 自定义指纹
 
 支持加载自定义指纹文件，格式与对应的指纹库一致。自定义指纹默认与内置指纹**叠加使用**，如需禁用内置指纹，请使用 `--no-default` 参数。
+
+默认 `--redirect-policy` 为 `never`，即不跟随任何跳转，因此一个输入目标默认只输出原始页面结果；如需跟随 HTTP 3xx 或内容跳转，请显式指定 `http` 或 `all`。
 
 指纹文件示例见 `fingerprints/` 目录。
 
